@@ -31,6 +31,7 @@ def main(args):
             dataset=data_test, batch_size=1, shuffle=False,
             num_workers=0, pin_memory=True)
         for bidx, data in enumerate(test_loader):
+            model.eval()
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
@@ -38,6 +39,9 @@ def main(args):
             log_py, log_px = model.get_logprob(x, y_gt)
             log_py = log_py.cpu().detach().numpy().squeeze()
             log_px = log_px.cpu().detach().numpy().squeeze()
+            print(str(session_id) + '-' + str(bidx) + '-hyps.jpg')
+            print(str(-1.0 * log_px))
+            print(str(-1.0 * log_py))
             nll_px_sum = nll_px_sum + -1.0 * log_px
             nll_py_sum = nll_py_sum + -1.0 * log_py
             counter = counter + 1.0
