@@ -21,7 +21,7 @@ def main(args):
     save_path = os.path.join(os.path.split(resume_checkpoint)[0], 'results')
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    data_test = SDDData(split='test')
+    data_test = SDDData(split='test', normalize=False)
     nll_px_sum = 0
     nll_py_sum = 0
     counter = 0.0
@@ -31,7 +31,6 @@ def main(args):
             dataset=data_test, batch_size=1, shuffle=False,
             num_workers=0, pin_memory=True)
         for bidx, data in enumerate(test_loader):
-            model.eval()
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
