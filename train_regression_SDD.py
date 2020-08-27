@@ -93,6 +93,7 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
             #y = y.float().to(args.gpu).unsqueeze(1).repeat(1, 10).unsqueeze(2)
             x = x.float().to(args.gpu)
             y = y.float().to(args.gpu).unsqueeze(1)
+            y = y.repeat(1, 10, 1) + torch.randn(y.shape[0], y.shape[1], y.shape[2]).to(args.gpu)
             step = bidx + len(train_loader) * epoch
             model.train()
             recon_nats = model(x, y, optimizer, step, None)
