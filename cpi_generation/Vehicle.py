@@ -6,6 +6,7 @@ from utils import Vehicle_States as State
 from utils import Pedestrian_States as PedestrianStates
 from PIL import Image, ImageDraw
 
+
 # stay, right, bottom, left, top
 Actions = [-1.0, 0.0, 90.0, 180.0, 270.0]
 

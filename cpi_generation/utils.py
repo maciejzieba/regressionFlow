@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+
 class Rect:
     def __init__(self, tl_x, tl_y, br_x, br_y):
         self.top_left = (tl_x, tl_y)

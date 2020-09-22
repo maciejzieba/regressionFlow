@@ -5,6 +5,7 @@ from Vehicle import Vehicle
 from utils import Rect
 import copy
 
+
 Colors = {
     'background' : (255, 255, 255, 0),
     'pedestrian_area' : (200, 200, 200, 255),
