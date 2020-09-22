@@ -1,5 +1,48 @@
-import numpy as np
 import math
+
+import numpy as np
+
+
+def writeFloat(name, data):
+    f = open(name, 'wb')
+
+    dim = len(data.shape)
+    # if dim>3:
+    #     raise Exception('bad float file dimension: %d' % dim)
+
+    f.write(('float\n').encode('ascii'))
+    f.write(('%d\n' % dim).encode('ascii'))
+
+    if dim == 1:
+        f.write(('%d\n' % data.shape[0]).encode('ascii'))
+    else:
+        f.write(('%d\n' % data.shape[1]).encode('ascii'))
+        f.write(('%d\n' % data.shape[0]).encode('ascii'))
+        for i in range(2, dim):
+            f.write(('%d\n' % data.shape[i]).encode('ascii'))
+
+    data = data.astype(np.float32)
+    if dim == 2:
+        data.tofile(f)
+    elif dim == 3:
+        np.transpose(data, (2, 0, 1)).tofile(f)
+    elif dim == 4:
+        np.transpose(data, (3, 2, 0, 1)).tofile(f)
+    else:
+        raise Exception('bad float file dimension: %d' % dim)
+
+
+def locs_to_sdd_features(locs: np.ndarray) -> np.ndarray:
+    """
+    locs is an array of triples:
+    [x1, y1, size1, x2, y2, size2, ...]
+    """
+
+    locs = locs.reshape(-1, 3)
+    return np.array([
+        [l[0], l[1], l[0] + l[2], l[1] + l[2], i]
+        for (i, l) in enumerate(locs)
+    ])
 
 
 class Rect:
