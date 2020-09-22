@@ -36,8 +36,7 @@ def readFloat(name):
 # read an image amd resize when needed
 def decode_img(file_path, width=None, height=None):
     img = cv2.imread(file_path)
-#     print(file_path)
-#     print(img)
+
     img = img / 255.0
     img = np.subtract(img, 0.4)
     if width is not None and height is not None:
@@ -49,10 +48,7 @@ def decode_img(file_path, width=None, height=None):
 
 # read the float file containing the object information
 def decode_obj(file_path, id, coeff_x=1.0, coeff_y=1.0):
-    read_float = readFloat(file_path)
-#     print(read_float.shape)
-#     print(read_float.shape, read_float[id])
-    object = np.expand_dims(np.expand_dims(np.expand_dims(read_float[id], 0), 0), 3).astype(np.float32)
+    object = np.expand_dims(np.expand_dims(np.expand_dims(readFloat(file_path)[id], 0), 0), 3).astype(np.float32)
     x_tl = object[:, :, 0:1, :] / coeff_x
     y_tl = object[:, :, 1:2, :] / coeff_y
     x_br = object[:, :, 2:3, :] / coeff_x
@@ -114,6 +110,7 @@ class Sequence():
 
 class SDDData(Dataset):
     def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root_dir="data/SDD/"):
+        # in CPI dataset, image size is (512,512)
         self.split = split
         if self.split == 'train':
             root = root_dir + "train"
@@ -147,8 +144,6 @@ class SDDData(Dataset):
             imgs_list.append(decode_img(testing_sequence.imgs[k], width=self.width, height=self.height))
         objects = np.stack(objects_list, axis=0)
         imgs = np.stack(imgs_list, axis=0)
-        h, w = imgs.shape[-2:]
-        assert (h,w) == (self.height, self.width), ((h,w), (self.height, self.width))
         gt_object = decode_obj(testing_sequence.objects[-1], testing_sequence.id)
         input = []
         for i in range(2, -1, -1):
