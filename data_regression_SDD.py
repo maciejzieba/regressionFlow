@@ -108,12 +108,14 @@ class Sequence():
 
 
 class SDDData(Dataset):
-    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True):
+    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root=None, add_noise=True):
         self.split = split
         if self.split == 'train':
-            root = 'data/SDD/train'
+            root = os.path.join(root, 'train')
+            self.add_noise = add_noise
         else:
-            root = 'data/SDD/test'
+            root = os.path.join(root, 'test')
+            self.add_noise = False
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
@@ -122,7 +124,7 @@ class SDDData(Dataset):
 
     def __len__(self):
         if self.split == 'train':
-            return 20000
+            return 40000
         else:
             return len(self.dataset.scenes[self.test_id].sequences)
 
@@ -151,6 +153,8 @@ class SDDData(Dataset):
             input.append(mask)
         input = np.squeeze(np.concatenate(input, axis=1))
         output = get_avg_output(gt_object[0, 0, :, 0], self.width, self.height, self.normalize)
+        if self.add_noise:
+            output += np.random.normal(0.0, 2.0, output.shape)
         return input, output
 
 

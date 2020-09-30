@@ -63,8 +63,8 @@ class CNF(nn.Module):
             states = (x, _logpx, context)
             # atol = [self.atol] * 3
             # rtol = [self.rtol] * 3
-            atol = [10*self.atol] * 3
-            rtol = [10*self.rtol] * 3
+            atol = [self.atol] * 3
+            rtol = [self.rtol] * 3
         else:
             states = (x, _logpx)
             atol = [self.atol] * 2

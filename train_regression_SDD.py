@@ -72,8 +72,8 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
         print("[Rank %d] World size : %d" % (args.rank, dist.get_world_size()))
 
     print("Start epoch: %d End epoch: %d" % (start_epoch, args.epochs))
-    data = SDDData(split='train', normalize=normalize)
-    data_test = SDDData(split='test', normalize=normalize)
+    data = SDDData(split='train', normalize=normalize, root=args.data_dir)
+    data_test = SDDData(split='test', normalize=normalize, root=args.data_dir)
     train_loader = torch.utils.data.DataLoader(
         dataset=data, batch_size=args.batch_size, shuffle=True,
         num_workers=0, pin_memory=True)
