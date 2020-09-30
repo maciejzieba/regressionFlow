@@ -41,6 +41,7 @@ def main(args):
             print(str(session_id) + '-' + str(bidx) + '-hyps.jpg')
             print(str(-1.0 * log_px))
             print(str(-1.0 * log_py))
+            print(str(-1.0 * log_px + log_py))
             nll_px_sum = nll_px_sum + -1.0 * log_px
             nll_py_sum = nll_py_sum + -1.0 * log_py
             counter = counter + 1.0

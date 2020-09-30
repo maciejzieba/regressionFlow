@@ -8,16 +8,20 @@ from utils import truncated_normal, reduce_tensor, standard_normal_logprob
 from torch.nn import init
 
 
-def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1):
+def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, padding=None):
+    if padding is None:
+        padding_inside = (kernel_size-1)//2
+    else:
+        padding_inside = padding
     if batchNorm:
         return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=False),
+            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding_inside, bias=False),
             nn.BatchNorm2d(out_planes),
-            nn.LeakyReLU(0.1,inplace=True)
+            nn.LeakyReLU(0.1, inplace=True)
         )
     else:
         return nn.Sequential(
-            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=(kernel_size-1)//2, bias=True),
+            nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding_inside, bias=True),
             nn.LeakyReLU(0.1,inplace=True)
         )
 
@@ -35,7 +39,7 @@ def i_conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, bias = Tru
 
 
 def predict_flow(in_planes):
-    return nn.Conv2d(in_planes,2,kernel_size=3,stride=1,padding=1,bias=True)
+    return nn.Conv2d(in_planes, 2, kernel_size=3, stride=1, padding=1, bias=True)
 
 
 def deconv(in_planes, out_planes):
@@ -174,7 +178,8 @@ class HyperFlowNetwork(nn.Module):
 
         self.encoder = FlowNetS()
         output = []
-        self.n_out = 1024
+        # self.n_out = 1024
+        self.n_out = 46080
         dims = tuple(map(int, args.dims.split("-")))
         for k in range(len(dims)):
             if k == 0:
@@ -225,10 +230,11 @@ class FlowNetS(nn.Module):
         self.conv5_1 = conv(self.batchNorm, 512, 512)
         self.conv6 = conv(self.batchNorm, 512, 1024, stride=2)
         self.conv6_1 = conv(self.batchNorm, 1024, 1024)
-        # self.conv7 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1)
-        # self.conv8 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1)
-        self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
-        self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
+        self.conv7 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
+        self.conv8 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
+        #self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
+        # self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
+        # self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -244,14 +250,15 @@ class FlowNetS(nn.Module):
 
     def forward(self, x):
         out_conv1 = self.conv1(x)
-
         out_conv2 = self.conv2(out_conv1)
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
         out_conv4 = self.conv4_1(self.conv4(out_conv3))
         out_conv5 = self.conv5_1(self.conv5(out_conv4))
         out_conv6 = self.conv6_1(self.conv6(out_conv5))
-        # out_conv7 = self.conv7(out_conv6)
-        # out_conv8 = self.conv8(out_conv7)
-        out_fc1 = nn.functional.relu(self.fc1(out_conv6.view(out_conv6.size(0), -1)))
-        out_fc2 = nn.functional.relu(self.fc2(out_fc1))
+        out_conv7 = self.conv7(out_conv6)
+        out_conv8 = self.conv8(out_conv7)
+        out_fc2 = out_conv8.view(out_conv8.size(0), -1)
+        # out_fc2 = self.fc1(out_conv8.view(out_conv8.size(0), -1))
+        # out_fc1 = nn.functional.relu(self.fc1(out_conv6.view(out_conv6.size(0), -1)))
+        # out_fc2 = self.fc2(out_fc1)
         return out_fc2
