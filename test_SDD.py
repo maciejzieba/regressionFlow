@@ -21,7 +21,7 @@ def main(args):
     save_path = os.path.join(os.path.split(resume_checkpoint)[0], 'results')
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    data_test = SDDData(split='test', normalize=False)
+    data_test = SDDData(split='test', normalize=False, root=args.data_dir)
     nll_px_sum = 0
     nll_py_sum = 0
     counter = 0.0
