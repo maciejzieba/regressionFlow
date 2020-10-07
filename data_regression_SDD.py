@@ -108,14 +108,12 @@ class Sequence():
 
 
 class SDDData(Dataset):
-    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root=None, add_noise=True):
+    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root=None):
         self.split = split
         if self.split == 'train':
             root = os.path.join(root, 'train')
-            self.add_noise = add_noise
         else:
             root = os.path.join(root, 'test')
-            self.add_noise = False
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
@@ -153,8 +151,6 @@ class SDDData(Dataset):
             input.append(mask)
         input = np.squeeze(np.concatenate(input, axis=1))
         output = get_avg_output(gt_object[0, 0, :, 0], self.width, self.height, self.normalize)
-        if self.add_noise:
-            output += np.random.normal(0.0, 2.0, output.shape)
         return input, output
 
 

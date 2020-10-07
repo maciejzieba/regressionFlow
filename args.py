@@ -30,6 +30,7 @@ def add_args(parser):
     parser.add_argument('--bn_lag', type=float, default=0)
 
     # training options
+    parser.add_argument('--root_dir', type=str, default=None)
     parser.add_argument('--use_latent_flow', action='store_true',
                         help='Whether to use the latent flow to model the prior.')
     parser.add_argument('--use_deterministic_encoder', action='store_true',
