@@ -12,26 +12,27 @@ parser.add_argument("n_scenes", help='number of scenes to produce')
 parser.add_argument("history", help='history (length of the image sequence to store)')
 parser.add_argument("n_gts", help='number of gts per image sequence')
 parser.add_argument("dist", help='prediction horizon')
+
 args = parser.parse_args()
 
 hist = int(args.history)
 
 
-def get_mask(objects):
-    indices0 = objects[0, 0, 0:3].astype(int)  # shape (3)
-    indices1 = objects[0, 0, 3:6].astype(int)  # shape (3)
-    ind_row0 = [indices0[0], 512 - indices0[0] - indices0[2]]
-    ind_row1 = [indices1[0], 512 - indices1[0] - indices1[2]]
-    ind_col0 = [indices0[1], 512 - indices0[1] - indices0[2]]
-    ind_col1 = [indices1[1], 512 - indices1[1] - indices1[2]]
-    padding0 = np.stack([ind_col0, ind_row0])
-    padding1 = np.stack([ind_col1, ind_row1])
-    input0 = np.ones([indices0[2], indices0[2]])
-    input1 = np.ones([indices1[2], indices1[2]])
-    padded0 = np.pad(input0, padding0, 'constant')
-    padded1 = np.pad(input1, padding1, 'constant')
-    padded = (padded0 + padded1) * 100
-    return padded
+# def get_mask(objects):
+#     indices0 = objects[0, 0, 0:3].astype(int)  # shape (3)
+#     indices1 = objects[0, 0, 3:6].astype(int)  # shape (3)
+#     ind_row0 = [indices0[0], 512 - indices0[0] - indices0[2]]
+#     ind_row1 = [indices1[0], 512 - indices1[0] - indices1[2]]
+#     ind_col0 = [indices0[1], 512 - indices0[1] - indices0[2]]
+#     ind_col1 = [indices1[1], 512 - indices1[1] - indices1[2]]
+#     padding0 = np.stack([ind_col0, ind_row0])
+#     padding1 = np.stack([ind_col1, ind_row1])
+#     input0 = np.ones([indices0[2], indices0[2]])
+#     input1 = np.ones([indices1[2], indices1[2]])
+#     padded0 = np.pad(input0, padding0, 'constant')
+#     padded1 = np.pad(input1, padding1, 'constant')
+#     padded = (padded0 + padded1) * 100
+#     return padded
 
 
 for i in range(int(args.n_scenes)):

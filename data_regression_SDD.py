@@ -65,10 +65,12 @@ class DataLoader():
 
     def load_scenes(self):
         scenes_names = sorted(os.listdir(self.path))
+        print(self.path, "scenes_names", len(scenes_names))
         for scene_name in scenes_names:
             if os.path.exists(os.path.join(self.path, scene_name, 'scene.txt')):
                     self.scenes.append(Scene(os.path.join(self.path, scene_name)))
-
+        
+        print("n_Seqs", sum([len(s.sequences) for s in self.scenes]))
 
 class Scene():
     def __init__(self, scene_path):
@@ -115,7 +117,7 @@ class SDDData(Dataset):
         if self.split == 'train':
             root = root_dir + "train"
         else:
-            root = root_dir + 'test'
+            root = root_dir + split
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
