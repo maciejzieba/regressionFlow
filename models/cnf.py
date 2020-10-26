@@ -84,9 +84,10 @@ class CNF(nn.Module):
             integration_times = _flip(integration_times, 0)
 
         # Refresh the odefunc statistics.
-        self.odefunc.before_odeint()
+
         odeint = odeint_adjoint if self.use_adjoint else odeint_normal
         if self.training:
+            self.odefunc.before_odeint()
             #print(self.sqrt_end_time)
             state_t = odeint(
                 self.odefunc,
@@ -98,6 +99,7 @@ class CNF(nn.Module):
                 options=self.solver_options,
             )
         else:
+            self.odefunc.before_odeint(e=torch.ones(x.size()).requires_grad_(True).to(x))
             state_t = odeint(
                 self.odefunc,
                 states,
