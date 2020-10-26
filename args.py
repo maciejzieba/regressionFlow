@@ -8,6 +8,7 @@ LAYERS = ["ignore", "concat", "concat_v2", "squash", "concatsquash", "scale", "c
 def add_args(parser):
     # model architecture options
     parser.add_argument('--model_type', type=str, default='PointNet')
+    parser.add_argument('--logprob_type', type=str, default='Laplace')
     parser.add_argument('--input_dim', type=int, default=3,
                         help='Number of input dimensions (3 for 3D point clouds)')
     parser.add_argument('--dims', type=str, default='256')

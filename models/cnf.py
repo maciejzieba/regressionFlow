@@ -56,6 +56,8 @@ class CNF(nn.Module):
         if logpx is None:
             _logpx = torch.zeros(*x.shape[:-1], 1).to(x)
         else:
+            self.test_atol = [self.atol] * 3
+            self.test_rtol = [self.rtol] * 3
             _logpx = logpx
 
         if self.conditional:

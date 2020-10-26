@@ -4,9 +4,9 @@ from torch import optim
 from torch import nn
 from models.flow import get_latent_cnf
 from models.flow import get_hyper_cnf
-from utils import truncated_normal, reduce_tensor, standard_normal_logprob
+from utils import truncated_normal, standard_normal_logprob, standard_laplace_logprob
 from torch.nn import init
-
+from torch.distributions.laplace import Laplace
 
 def conv(batchNorm, in_planes, out_planes, kernel_size=3, stride=1, padding=None):
     if padding is None:
@@ -111,6 +111,7 @@ class HyperRegression(nn.Module):
         self.args = args
         self.point_cnf = get_hyper_cnf(self.args)
         self.gpu = args.gpu
+        self.logprob_type = args.logprob_type
 
     def make_optimizer(self, args):
         def _get_opt_(params):
@@ -132,7 +133,10 @@ class HyperRegression(nn.Module):
 
         # Loss
         y, delta_log_py = self.point_cnf(y, target_networks_weights, torch.zeros(batch_size, y.size(1), 1).to(y))
-        log_py = standard_normal_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+        if self.logprob_type == "Laplace":
+            log_py = standard_laplace_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+        if self.logprob_type == "Normal":
+            log_py = standard_normal_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
         delta_log_py = delta_log_py.view(batch_size, y.size(1), 1).sum(1)
         log_px = log_py - delta_log_py
 
@@ -152,20 +156,44 @@ class HyperRegression(nn.Module):
             truncated_normal(y, mean=0, std=1, trunc_std=truncate_std)
         return y
 
+    @staticmethod
+    def sample_gaussian(size, truncate_std=None, gpu=None):
+        y = torch.randn(*size).float()
+        y = y if gpu is None else y.cuda(gpu)
+        if truncate_std is not None:
+            truncated_normal(y, mean=0, std=1, trunc_std=truncate_std)
+        return y
+
+
+    @staticmethod
+    def sample_laplace(size, gpu=None):
+        m = Laplace(torch.tensor([0.0]), torch.tensor([1.0]))
+        y = m.sample(sample_shape=torch.Size([size[0], size[1], size[2]])).float().squeeze(3)
+        y = y if gpu is None else y.cuda(gpu)
+        return y
+
+
     def decode(self, z, num_points):
         # transform points from the prior to a point cloud, conditioned on a shape code
         target_networks_weights = self.hyper(z)
-        y = self.sample_gaussian((z.size(0), num_points, self.input_dim), None, self.gpu)
+        if self.logprob_type == "Laplace":
+            y = self.sample_laplace((z.size(0), num_points, self.input_dim), self.gpu)
+        if self.logprob_type == "Normal":
+            y = self.sample_gaussian((z.size(0), num_points, self.input_dim), None, self.gpu)
         x = self.point_cnf(y, target_networks_weights, reverse=True).view(*y.size())
         return y, x
 
-    def get_logprob(self, x, y):
+    def get_logprob(self, x, y_in):
         batch_size = x.size(0)
         target_networks_weights = self.hyper(x)
 
         # Loss
-        y, delta_log_py = self.point_cnf(y, target_networks_weights, torch.zeros(batch_size, y.size(1), 1).to(y))
-        log_py = standard_normal_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+        y, delta_log_py = self.point_cnf(y_in, target_networks_weights, torch.zeros(batch_size, y_in.size(1), 1).to(y_in))
+        if self.logprob_type == "Laplace":
+            log_py = standard_laplace_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+        if self.logprob_type == "Normal":
+            log_py = standard_normal_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+
         delta_log_py = delta_log_py.view(batch_size, y.size(1), 1).sum(1)
         log_px = log_py - delta_log_py
 
@@ -178,7 +206,7 @@ class HyperFlowNetwork(nn.Module):
 
         self.encoder = FlowNetS()
         output = []
-        self.n_out = 2048
+        self.n_out = 1024
         # self.n_out = 46080
         dims = tuple(map(int, args.dims.split("-")))
         for k in range(len(dims)):
@@ -233,12 +261,12 @@ class FlowNetS(nn.Module):
         self.conv7 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
         self.conv8 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
         #self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
-        # self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
-        # self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
-        self.predict_6 = predict_flow(1024)
-        self.fc1 = nn.Linear(in_features=90, out_features=512, bias=True)
-        self.fc2 = nn.Linear(in_features=512, out_features=1024, bias=True)
-        self.fc3 = nn.Linear(in_features=1024, out_features=2048, bias=True)
+        self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
+        self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
+        # self.predict_6 = predict_flow(1024)
+        # self.fc1 = nn.Linear(in_features=90, out_features=512, bias=True)
+        # self.fc2 = nn.Linear(in_features=512, out_features=1024, bias=True)
+        # self.fc3 = nn.Linear(in_features=1024, out_features=2048, bias=True)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -260,15 +288,15 @@ class FlowNetS(nn.Module):
         out_conv5 = self.conv5_1(self.conv5(out_conv4))
         out_conv6 = self.conv6_1(self.conv6(out_conv5))
         out_conv8 = self.conv8(self.conv7(out_conv6))
-        predict = self.predict_6(out_conv8)
-        out_fc1 = nn.functional.relu(self.fc1(predict.view(predict.size(0), -1)))
-        out_fc2 = nn.functional.relu(self.fc2(out_fc1))
-        out_fc3 = nn.functional.relu(self.fc3(out_fc2))
+        # predict = self.predict_6(out_conv8)
+        # out_fc1 = nn.functional.relu(self.fc1(predict.view(predict.size(0), -1)))
+        # out_fc2 = nn.functional.relu(self.fc2(out_fc1))
+        # out_fc3 = nn.functional.relu(self.fc3(out_fc2))
         # out_conv7 = self.conv7(out_conv6)
         # out_conv8 = self.conv8(out_conv7)
         # out_fc2 = out_conv6.view(out_conv6.size(0), -1)
         # out_fc2 = self.fc1(out_conv8.view(out_conv8.size(0), -1))
-        # out_fc1 = nn.functional.relu(self.fc1(out_conv6.view(out_conv6.size(0), -1)))
-        # out_fc2 = nn.functional.relu(self.fc2(out_fc1))
+        out_fc1 = nn.functional.relu(self.fc1(out_conv8.view(out_conv6.size(0), -1)))
+        out_fc2 = nn.functional.relu(self.fc2(out_fc1))
         #out_fc2 = self.predict_6(out_conv6)
-        return out_fc3
+        return out_fc2
