@@ -97,6 +97,11 @@ def standard_normal_logprob(z):
     return log_z - z.pow(2) / 2
 
 
+def standard_laplace_logprob(z):
+    log_z = - 1.0*log(2)
+    return log_z - torch.abs(z)
+
+
 def log_normal_logprob(z, mu, var):
      log_norm = torch.log(torch.norm(z, dim=2))
      logz = -1.0 * log(2) - 1.5 * log(2 * pi) - 0.5 * log(var)

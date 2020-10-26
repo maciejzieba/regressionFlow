@@ -8,6 +8,7 @@ LAYERS = ["ignore", "concat", "concat_v2", "squash", "concatsquash", "scale", "c
 def add_args(parser):
     # model architecture options
     parser.add_argument('--model_type', type=str, default='PointNet')
+    parser.add_argument('--logprob_type', type=str, default='Laplace')
     parser.add_argument('--input_dim', type=int, default=3,
                         help='Number of input dimensions (3 for 3D point clouds)')
     parser.add_argument('--dims', type=str, default='256')
@@ -30,6 +31,7 @@ def add_args(parser):
     parser.add_argument('--bn_lag', type=float, default=0)
 
     # training options
+    parser.add_argument('--root_dir', type=str, default=None)
     parser.add_argument('--use_latent_flow', action='store_true',
                         help='Whether to use the latent flow to model the prior.')
     parser.add_argument('--use_deterministic_encoder', action='store_true',
@@ -69,12 +71,12 @@ def add_args(parser):
     parser.add_argument('--image_size', type=str, default="28x28",
                         help='Size of input image')
     # data options
+
+    parser.add_argument('--data_dir', type=str, default='data/SDD/', help="Path to the training data")
     parser.add_argument('--dataset_type', type=str, default="shapenet15k",
                         help="Dataset types.", choices=['shapenet15k', 'modelnet40_15k', 'modelnet10_15k'])
     parser.add_argument('--cates', type=str, nargs='+', default=["airplane"],
                         help="Categories to be trained (useful only if 'shapenet' is selected)")
-    parser.add_argument('--data_dir', type=str, default="data/ShapeNetCore.v2.PC15k",
-                        help="Path to the training data")
     parser.add_argument('--mn40_data_dir', type=str, default="data/ModelNet40.PC15k",
                         help="Path to ModelNet40")
     parser.add_argument('--mn10_data_dir', type=str, default="data/ModelNet10.PC15k",

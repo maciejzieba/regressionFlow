@@ -2,6 +2,7 @@ import os
 import cv2
 
 import numpy as np
+import imgaug.augmenters as iaa
 from torch.utils.data import Dataset
 
 
@@ -69,7 +70,7 @@ class DataLoader():
         for scene_name in scenes_names:
             if os.path.exists(os.path.join(self.path, scene_name, 'scene.txt')):
                     self.scenes.append(Scene(os.path.join(self.path, scene_name)))
-        
+
         print("n_Seqs", sum([len(s.sequences) for s in self.scenes]))
 
 class Scene():
@@ -111,13 +112,13 @@ class Sequence():
 
 
 class SDDData(Dataset):
-    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root_dir="data/SDD/"):
-        # in CPI dataset, image size is (512,512)
+    def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root=None):
+
         self.split = split
         if self.split == 'train':
-            root = root_dir + "train"
+            root = os.path.join(root, 'train')
         else:
-            root = root_dir + split
+            root = os.path.join(root, 'test')
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
@@ -155,6 +156,17 @@ class SDDData(Dataset):
             input.append(mask)
         input = np.squeeze(np.concatenate(input, axis=1))
         output = get_avg_output(gt_object[0, 0, :, 0], self.width, self.height, self.normalize)
+        # (1,1) (2, 0)
+
+        if self.split == 'train':
+            s = np.random.uniform(0, 1)
+            if s > 0.5:
+                input = np.flip(input, 2).copy()
+                output[0] = self.width - output[0]
+            s = np.random.uniform(0, 1)
+            if s > 0.5:
+                input = np.flip(input, 1).copy()
+                output[1] = self.height - output[1]
         return input, output
 
 
@@ -189,7 +201,7 @@ def main():
         scene_name = scene.scene_path.split('/')[-1]
         print('---------------- Scene %s ---------------------' % scene_name)
         print(len(scene.sequences))
-        for i in range(len(scene.sequences)):
+        for i in range(1):# range(len(scene.sequences)):
             testing_sequence = scene.sequences[i]
             objects_list = []
             imgs_list = []
@@ -206,7 +218,15 @@ def main():
                 input.append(imgs[i])
                 input.append(mask)
             input = np.concatenate(input, axis=1)
-            output = get_avg_output(gt_object[0, 0, :, 0])
+            input = np.flip(input, 2)
+            cv2.imwrite('color_img_1_f.jpg', np.transpose(255*input[0,0:3,:,:], [1, 2, 0]))
+            cv2.imwrite('color_img_2_f.jpg', np.transpose(255*np.expand_dims(input[0,3,:,:],axis=0), [1, 2, 0]))
+            cv2.imwrite('color_img_3_f.jpg', np.transpose(255*input[0,4:7,:,:], [1, 2, 0]))
+            cv2.imwrite('color_img_4_f.jpg', np.transpose(255*np.expand_dims(input[0,7,:,:],axis=0), [1, 2, 0]))
+            cv2.imwrite('color_img_5_f.jpg', np.transpose(255*input[0,8:11,:,:], [1, 2, 0]))
+            cv2.imwrite('color_img_6_f.jpg', np.transpose(255*np.expand_dims(input[0,11,:,:], axis=0), [1, 2, 0]))
+            output = get_avg_output(gt_object[0, 0, :, 0], width, height, False)
+            output[1] = width - output[1]
 
 
 if __name__ == '__main__':

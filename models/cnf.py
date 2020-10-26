@@ -56,6 +56,8 @@ class CNF(nn.Module):
         if logpx is None:
             _logpx = torch.zeros(*x.shape[:-1], 1).to(x)
         else:
+            self.test_atol = [self.atol] * 3
+            self.test_rtol = [self.rtol] * 3
             _logpx = logpx
 
         if self.conditional:
@@ -63,8 +65,8 @@ class CNF(nn.Module):
             states = (x, _logpx, context)
             # atol = [self.atol] * 3
             # rtol = [self.rtol] * 3
-            atol = [10*self.atol] * 3
-            rtol = [10*self.rtol] * 3
+            atol = [self.atol] * 3
+            rtol = [self.rtol] * 3
         else:
             states = (x, _logpx)
             atol = [self.atol] * 2
@@ -82,9 +84,10 @@ class CNF(nn.Module):
             integration_times = _flip(integration_times, 0)
 
         # Refresh the odefunc statistics.
-        self.odefunc.before_odeint()
+
         odeint = odeint_adjoint if self.use_adjoint else odeint_normal
         if self.training:
+            self.odefunc.before_odeint()
             #print(self.sqrt_end_time)
             state_t = odeint(
                 self.odefunc,
@@ -96,6 +99,7 @@ class CNF(nn.Module):
                 options=self.solver_options,
             )
         else:
+            self.odefunc.before_odeint(e=torch.ones(x.size()).requires_grad_(True).to(x))
             state_t = odeint(
                 self.odefunc,
                 states,
