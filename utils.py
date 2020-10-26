@@ -91,8 +91,9 @@ def reduce_tensor(tensor, world_size=None):
 
 
 def standard_normal_logprob(z):
-    dim = z.size(-1)
-    log_z = -0.5 * dim * log(2 * pi)
+    # dim = z.size(-1)
+    # log_z = -0.5 * dim * log(2 * pi)
+    log_z = -0.5 * log(2 * pi)
     return log_z - z.pow(2) / 2
 
 

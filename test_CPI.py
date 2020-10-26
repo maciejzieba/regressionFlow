@@ -3,12 +3,15 @@ from args import get_args
 import torch
 import os
 import cv2
+import numpy as np
 
 from data_regression_SDD import SDDData, decode_obj
 import numpy as np
 from utils import draw_hyps
 from scipy.stats import wasserstein_distance as emd_distance
 from pyemd import emd_samples
+from collections import defaultdict
+from wemd import computeWEMD
 
 def main(args):
     model = HyperRegression(args)
@@ -29,6 +32,12 @@ def main(args):
     nll_px_sum = 0
     nll_py_sum = 0
     counter = 0.0
+    
+    metrics = {
+        "car": defaultdict(list),
+        "ped": defaultdict(list)
+    }
+    
     for session_id in range(len(data_test.dataset.scenes)):
         data_test.test_id = session_id
         print("scene", session_id, "n_datas", len(data_test))
@@ -37,45 +46,102 @@ def main(args):
             dataset=data_test, batch_size=1, shuffle=False,
             num_workers=0, pin_memory=True)
         
-
+        
+        pedestrian_gt = []
+        car_gt = []
+        
+        pedestrian_x = None
+        car_x = None
         for bidx, data in enumerate(test_loader):
             x, y_gt = data
             
-#             print("x, y_gt", x.shape, y_gt.shape)
+            if bidx % 2 == 0:
+                pedestrian_x = x
+                pedestrian_gt.append(y_gt)
+            else:
+                car_x = x
+                car_gt.append(y_gt)
+        
+        
+        for bidx, (name, x, y_gt) in enumerate([
+            ("ped", pedestrian_x, pedestrian_gt),
+            ("car", car_x, car_gt)
+        ]):
+            
+            y_gt = torch.stack(y_gt).float().to(args.gpu)
             x = x.float().to(args.gpu)
-            y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
-            _, y_pred = model.decode(x, 1000)
-#             print("y_pred", y_pred.shape)
-            log_py, log_px = model.get_logprob(x, y_gt)
+
+            _, y_pred = model.decode(x, 100 )
+
+            log_py, log_px = model.get_logprob(
+                x.repeat(len(y_gt), 1, 1, 1), 
+                y_gt
+            )
             log_py = log_py.cpu().detach().numpy().squeeze()
             log_px = log_px.cpu().detach().numpy().squeeze()
-            print(str(session_id) + '-' + str(bidx) + '-hyps.jpg')
-            print(str(-1.0 * log_px))
-            print(str(-1.0 * log_py))
-            nll_px_sum = nll_px_sum + -1.0 * log_px
-            nll_py_sum = nll_py_sum + -1.0 * log_py
-            counter = counter + 1.0
+            
+            metrics[name]["nll_px"].extend(-1.0 * log_px)
+            metrics[name]["nll_py"].extend(-1.0 * log_py)
+            
+            y_gt_np = y_gt.detach().cpu().numpy().reshape((-1, 2))
+            
             y_pred = y_pred.cpu().detach().numpy().squeeze()
-            # y_pred[y_pred < 0] = 0
-            # y_pred[y_pred >= 0.98] = 0.98
+            
+#             emd = emd_samples(y_gt_np, y_pred)
+            print(name)
+            print(str(-1.0 * log_px.mean()))
+            print(str(-1.0 * log_py.mean()))
+#             print("emd", emd)
+#             metrics[name]["emd"].append(emd)
+            
+            
+            hist_gt, *_ = np.histogram2d(y_gt_np[:, 0], y_gt_np[:, 1], bins=np.linspace(0, 512, 512))
+            hist_pred, *_ = np.histogram2d(y_pred[:, 0], y_pred[:, 1], bins=np.linspace(0, 512, 512))
+
+            
+            wemd = computeWEMD(hist_pred, hist_gt)
+            print("wemd", wemd)
+            metrics[name]["wemd"].append(wemd)
+
+            
             testing_sequence = data_test.dataset.scenes[data_test.test_id].sequences[bidx]
             objects_list = []
             for k in range(3):
                 objects_list.append(decode_obj(testing_sequence.objects[k], testing_sequence.id))
             objects = np.stack(objects_list, axis=0)
-            gt_object = decode_obj(testing_sequence.objects[-1], testing_sequence.id)
-            drawn_img_hyps = draw_hyps(testing_sequence.imgs[-1], y_pred, gt_object, objects, normalize=False)
-            cv2.imwrite(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-hyps.jpg'), drawn_img_hyps)
+#             gt_object = decode_obj(testing_sequence.objects[-1], testing_sequence.id)
+#             print(gt_object)
+            gt_object = np.array([[[[0],[0], [0], [0], [bidx]]]]).astype(float) # mock it and draw dots instead
+#             print(gt_object)
+            drawn_img_hyps = draw_hyps(testing_sequence.imgs[2], y_pred, gt_object, objects, normalize=False)
             
-            ####
-#             print(y_gt.shape, y_pred.shape, type(y_gt), type(y_pred))
-            y_gt_np = y_gt.detach().cpu().numpy().reshape((-1, 2))
+            # draw ground truth samples in blue
+            for (x1, y1) in y_gt_np:
+                color = (255, 0, 0)
+                cv2.circle(drawn_img_hyps, (x1, y1), 3, color, -1)
+            cv2.imwrite(os.path.join(save_path, f"{session_id}-{bidx}-{name}-hyps.jpg"), drawn_img_hyps)
             
-            emd = emd_samples(y_gt_np, y_pred)
-            print("emd", emd)
+#             ####
+# #             print(y_gt.shape, y_pred.shape, type(y_gt), type(y_pred))
+
             
-    print("Sum log_p_x: " + str(nll_px_sum/counter))
-    print("Sum log_p_y: " + str(nll_py_sum/counter))
+#     print("Sum log_p_x: " + str(nll_px_sum/counter))
+#     print("Sum log_p_y: " + str(nll_py_sum/counter))
+    
+    total_mets = defaultdict(list)
+    
+    for k, mets in metrics.items():
+        for name, nums in mets.items():
+            print(f"Mean {k} {name}: ", np.array(nums).mean())
+            total_mets[name].extend(nums)
+    
+    for name, nums in mets.items():
+        print(f"Total mean {name}: ", np.array(nums).mean())
+    
+#     print("Sum log_p_x: " + str(np.array(nll_px).mean()))
+#     print("Sum log_p_y: " + str(np.array(nll_py).mean()))
+
+#     print("Sum log_p_y: " + str(nll_py_sum/counter))
     #evaluate_gen_2(args)
     #evaluate_recon_3(args)
 
