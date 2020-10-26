@@ -118,7 +118,7 @@ class SDDData(Dataset):
         if self.split == 'train':
             root = os.path.join(root, 'train')
         else:
-            root = os.path.join(root, 'test')
+            root = os.path.join(root, split)
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
