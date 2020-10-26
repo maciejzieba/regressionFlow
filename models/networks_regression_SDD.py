@@ -260,8 +260,8 @@ class FlowNetS(nn.Module):
         self.conv6_1 = conv(self.batchNorm, 1024, 1024)
         self.conv7 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
         self.conv8 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
-        #self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
-        self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
+        self.fc1 = nn.Linear(in_features=65536, out_features=1024, bias=True) # CPI
+        # self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True) # SDD
         self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
         # self.predict_6 = predict_flow(1024)
         # self.fc1 = nn.Linear(in_features=90, out_features=512, bias=True)
