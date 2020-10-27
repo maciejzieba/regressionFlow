@@ -27,7 +27,7 @@ def main(args):
         os.mkdir(save_path)
         
     # hardcoded data path
-    data_test = SDDData(width=512, height=512, split='test_small', normalize=False, root_dir="cpi_generation/cpi/")
+    data_test = SDDData(width=512, height=512, split='test_small', normalize=False, root="cpi_generation/cpi/")
     
     nll_px_sum = 0
     nll_py_sum = 0
