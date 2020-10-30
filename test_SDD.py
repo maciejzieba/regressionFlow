@@ -26,7 +26,7 @@ def main(args):
     nll_px_sum = 0
     nll_py_sum = 0
     
-    semd_sum = 0
+    multimod_emd_sum = 0
     oracle_err_sum = 0
     
     counter = 0.0
@@ -84,18 +84,17 @@ def main(args):
             drawn_img_hyps = draw_hyps(testing_sequence.imgs[-1], y_pred, gt_object, objects, normalize=False)
             cv2.imwrite(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-hyps.jpg'), drawn_img_hyps)
             
-            semd = mmfp_utils.wemd_from_pred_samples(y_pred)
-            semd_sum += semd
+            multimod_emd = mmfp_utils.wemd_from_pred_samples(y_pred)
+            multimod_emd_sum += multimod_emd
             
             y_gt_np = y_gt.cpu().numpy()
-#             print(y_gt_np.shape)
             oracle_err = mmfp_utils.compute_oracle_FDE(
                 y_pred.reshape(1, *y_pred.shape,1,1 ), 
                 y_gt_np.reshape(1,1,2,1))
     
             oracle_err_sum +=oracle_err
             
-            print("przemd", semd)
+            print("EMD (Przemek multimodality measure)", multimod_emd)
             print("oracle err", oracle_err)
             row = {
                 "session_id": session_id,
@@ -123,7 +122,7 @@ def main(args):
             
     print("Mean log_p_x: " + str(nll_px_sum/counter))
     print("Mean log_p_y: " + str(nll_py_sum/counter))
-    print("Mean PRZEMD:", semd_sum/counter)
+    print("Mean multimod_emd:", multimod_emd_sum/counter)
     print("Mean Oracle Error:", oracle_err_sum / counter)
     #evaluate_gen_2(args)
     #evaluate_recon_3(args)

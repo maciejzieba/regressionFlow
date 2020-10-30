@@ -500,13 +500,3 @@ def draw_sdd_heatmap(
     return im
 
 
-def wemd_from_samples(samples_1, samples_2, bins=512):
-    hist_1, *_ = np.histogram2d(samples_1[:, 0], samples_1[:, 1], bins=np.linspace(0, bins, bins))
-    hist_2, *_ = np.histogram2d(samples_2[:, 0], samples_2[:, 1], bins=np.linspace(0, bins, bins))
-    return computeWEMD(hist_1, hist_2)
-
-def wemd_from_pred_samples(y_pred, ):
-    gmm = GMM(covariance_type="diag")
-    gmm = gmm.fit(y_pred)
-    y_s, _ = gmm.sample(len(y_pred))
-    return wemd_from_samples(y_s, y_pred)
