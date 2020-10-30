@@ -10,7 +10,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import cv2
-
+import io
+from PIL import Image
+from sklearn.mixture import GaussianMixture as GMM
+# from wemd import computeWEMD
 
 class AverageValueMeter(object):
     """Computes and stores the average and current value"""
@@ -445,3 +448,65 @@ def draw_hyps(img_path, hyps, gt_object, objects, normalize=True):
         color = (0, 255, 0)
         cv2.circle(img, (x1, y1), 3, color, -1)
     return img
+
+def draw_sdd_heatmap(
+    session_id,
+    bidx,
+    nll_x,
+    nll_y,
+    x,
+    y_gt,
+    y_pred,
+    objects,
+    gt_object,
+    drawn_img_hyps,
+    testing_sequence,
+    log_px_pred,
+    log_py_pred,
+    xx,
+    XY
+):
+    def transparent_cmap(cmap, N=255):
+        "Copy colormap and set alpha values"
+        mycmap = cmap
+        mycmap._init()
+        mycmap._lut[:, -1] = np.clip(np.linspace(0, 1.0, N + 4), 0, 1.0)
+        return mycmap
+#     print(log_px_pred.shape)
+    img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False)
+
+    
+    X, Y = XY
+    
+#     print(X.shape, Y.shape)
+    Z = log_px_pred.reshape(-1)
+#     Z = np.exp(Z)
+    vmax = np.max(Z)
+    vmin = np.min(Z)
+    h, w, _ = img.shape
+    plt.figure(figsize=(h // 20,w // 20))
+    plt.imshow(img)
+    plt.contourf(X, Y,Z.reshape(X.shape), vmin=vmin , vmax=vmax, cmap=transparent_cmap(plt.cm.jet))
+    plt.savefig("xd2.png")
+    
+    plt.axis("off")
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    im = Image.open(buf).copy()
+    buf.close()
+    plt.clf()
+    plt.close()
+    return im
+
+
+def wemd_from_samples(samples_1, samples_2, bins=512):
+    hist_1, *_ = np.histogram2d(samples_1[:, 0], samples_1[:, 1], bins=np.linspace(0, bins, bins))
+    hist_2, *_ = np.histogram2d(samples_2[:, 0], samples_2[:, 1], bins=np.linspace(0, bins, bins))
+    return computeWEMD(hist_1, hist_2)
+
+def wemd_from_pred_samples(y_pred, ):
+    gmm = GMM(covariance_type="diag")
+    gmm = gmm.fit(y_pred)
+    y_s, _ = gmm.sample(len(y_pred))
+    return wemd_from_samples(y_s, y_pred)

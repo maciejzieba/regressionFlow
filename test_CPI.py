@@ -12,6 +12,7 @@ from scipy.stats import wasserstein_distance as emd_distance
 from pyemd import emd_samples
 from collections import defaultdict
 from wemd import computeWEMD
+import mmfp_utils
 
 def main(args):
     model = HyperRegression(args)
@@ -73,7 +74,7 @@ def main(args):
 
             _, y_pred = model.decode(x, 100 )
 
-            log_py, log_px = model.get_logprob(
+            log_py, log_px, _ = model.get_logprob(
                 x.repeat(len(y_gt), 1, 1, 1), 
                 y_gt
             )
@@ -86,6 +87,18 @@ def main(args):
             y_gt_np = y_gt.detach().cpu().numpy().reshape((-1, 2))
             
             y_pred = y_pred.cpu().detach().numpy().squeeze()
+            
+            
+            oracle_err = np.array([
+                mmfp_utils.compute_oracle_FDE(
+                    y_pred.reshape(1, *y_pred.shape,1,1), 
+                    yg.reshape(1,1, 2, 1,)
+                )
+                for yg in y_gt_np
+                
+            ])
+            metrics[name]["oracle_err"].append(oracle_err.mean())
+            print("oracle_err", oracle_err.mean())
             
 #             emd = emd_samples(y_gt_np, y_pred)
             print(name)
@@ -102,7 +115,7 @@ def main(args):
             wemd = computeWEMD(hist_pred, hist_gt)
             print("wemd", wemd)
             metrics[name]["wemd"].append(wemd)
-
+        
             
             testing_sequence = data_test.dataset.scenes[data_test.test_id].sequences[bidx]
             objects_list = []
@@ -120,13 +133,7 @@ def main(args):
                 color = (255, 0, 0)
                 cv2.circle(drawn_img_hyps, (x1, y1), 3, color, -1)
             cv2.imwrite(os.path.join(save_path, f"{session_id}-{bidx}-{name}-hyps.jpg"), drawn_img_hyps)
-            
-#             ####
-# #             print(y_gt.shape, y_pred.shape, type(y_gt), type(y_pred))
 
-            
-#     print("Sum log_p_x: " + str(nll_px_sum/counter))
-#     print("Sum log_p_y: " + str(nll_py_sum/counter))
     
     total_mets = defaultdict(list)
     
@@ -138,12 +145,6 @@ def main(args):
     for name, nums in mets.items():
         print(f"Total mean {name}: ", np.array(nums).mean())
     
-#     print("Sum log_p_x: " + str(np.array(nll_px).mean()))
-#     print("Sum log_p_y: " + str(np.array(nll_py).mean()))
-
-#     print("Sum log_p_y: " + str(nll_py_sum/counter))
-    #evaluate_gen_2(args)
-    #evaluate_recon_3(args)
 
 
 if __name__ == '__main__':

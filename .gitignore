@@ -1,3 +1,5 @@
+*.pkl
+*.pt
 *.zip
 checkpoints/
 cpi_generation/cpi
