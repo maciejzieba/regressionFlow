@@ -421,8 +421,10 @@ def visualize_2Dimage(image, samples, idx):
     return res
 
 
-def draw_hyps(img_path, hyps, gt_object, objects, normalize=True, hist_rects_color=(0, 0, 255)):
+def draw_hyps(img_path, hyps, gt_object, objects, normalize=True, hist_rects_color=(0, 0, 255), cvt_color: bool = False):
     img = cv2.imread(img_path)
+    if cvt_color:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # draw object history
     tranparency = {0: 0.2, 1: 0.5, 2: 1.0}
     for i in range(3):
@@ -482,7 +484,7 @@ def draw_sdd_heatmap(
         mycmap._lut[:, -1] = np.clip(np.linspace(0, 1.0, N + 4), 0, 1.0)
         return mycmap
 #     print(log_px_pred.shape)
-    img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False, hist_rects_color=(255, 0,0))
+    img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False, hist_rects_color=(255, 0,0), cvt_color=True)
 
     
     X, Y = XY
