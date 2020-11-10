@@ -42,7 +42,7 @@ def main(args):
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
-            _, y_pred = model.decode(x, 1000)
+            _, y_pred = model.decode(x, 10)
             
             log_py, log_px, _ = model.get_logprob(x, y_gt)
             
@@ -84,8 +84,8 @@ def main(args):
             drawn_img_hyps = draw_hyps(testing_sequence.imgs[-1], y_pred, gt_object, objects, normalize=False)
             cv2.imwrite(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-hyps.jpg'), drawn_img_hyps)
             
-            semd = mmfp_utils.wemd_from_pred_samples(y_pred)
-            semd_sum += semd
+#             semd = mmfp_utils.wemd_from_pred_samples(y_pred)
+#             semd_sum += semd
             
             y_gt_np = y_gt.cpu().numpy()
 #             print(y_gt_np.shape)
@@ -95,7 +95,7 @@ def main(args):
     
             oracle_err_sum +=oracle_err
             
-            print("przemd", semd)
+#             print("przemd", semd)
             print("oracle err", oracle_err)
             row = {
                 "session_id": session_id,
@@ -115,8 +115,8 @@ def main(args):
                 "XY": (X,Y),
 
             }
-#             ht_img = draw_sdd_heatmap(**row)
-#             ht_img.save(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-heatmap.png'))
+            ht_img = draw_sdd_heatmap(**row)
+            ht_img.save(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-heatmap.png'))
     
 #             if bidx in [0,1]:
 #                 rows.append(row)
