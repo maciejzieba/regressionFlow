@@ -502,7 +502,7 @@ def draw_sdd_heatmap(
     
     plt.axis("off")
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
     buf.seek(0)
     im = Image.open(buf).copy()
     buf.close()

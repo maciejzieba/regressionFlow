@@ -82,7 +82,7 @@ def main(args):
             objects = np.stack(objects_list, axis=0)
             gt_object = decode_obj(testing_sequence.objects[-1], testing_sequence.id)
             drawn_img_hyps = draw_hyps(testing_sequence.imgs[-1], y_pred, gt_object, objects, normalize=False)
-            cv2.imwrite(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-hyps.jpg'), drawn_img_hyps)
+            cv2.imwrite(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-hyps.png'), drawn_img_hyps)
             
 #             semd = mmfp_utils.wemd_from_pred_samples(y_pred)
 #             semd_sum += semd
