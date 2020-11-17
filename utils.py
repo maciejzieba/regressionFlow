@@ -91,8 +91,6 @@ def reduce_tensor(tensor, world_size=None):
 
 
 def standard_normal_logprob(z):
-    # dim = z.size(-1)
-    # log_z = -0.5 * dim * log(2 * pi)
     log_z = -0.5 * log(2 * pi)
     return log_z - z.pow(2) / 2
 
@@ -445,3 +443,16 @@ def draw_hyps(img_path, hyps, gt_object, objects, normalize=True):
         color = (0, 255, 0)
         cv2.circle(img, (x1, y1), 3, color, -1)
     return img
+
+
+def draw_ngsim_plots(hist, y_gt, y_pred, op_mask, dir):
+    hist_np = hist.cpu().detach().numpy()
+    y_gt = y_gt.cpu().detach().numpy()
+    y_pred = y_pred.cpu().detach().numpy()
+    op_mask = op_mask.cpu().detach().numpy()
+    for k in range(hist.shape[1]):
+        plt.scatter(hist_np[:, k, 1], hist_np[:, k, 0], marker='^')
+        plt.scatter(y_pred[k, :, 1], y_pred[k, :, 0], marker='*', c='#ff7f0e')
+        plt.scatter(y_gt[k, 0, 1], y_gt[k, 0, 0], marker='o', c='#bcbd22')
+        plt.savefig(os.path.join(dir, str(k) + '_' + str(op_mask[k]) + '.png'))
+        plt.close()
