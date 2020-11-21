@@ -1,10 +1,8 @@
 import torch
-import numpy as np
 from torch import optim
 from torch import nn
-from models.flow import get_latent_cnf
 from models.flow import get_hyper_cnf
-from utils import truncated_normal, reduce_tensor, standard_normal_logprob
+from utils import truncated_normal, standard_normal_logprob
 
 
 class ListModule(nn.Module):

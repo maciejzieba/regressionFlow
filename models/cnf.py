@@ -99,7 +99,8 @@ class CNF(nn.Module):
                 options=self.solver_options,
             )
         else:
-            self.odefunc.before_odeint(e=torch.ones(x.size()).requires_grad_(True).to(x))
+            #self.odefunc.before_odeint(e=torch.ones(x.size()).requires_grad_(True).to(x))
+            self.odefunc.before_odeint()
             state_t = odeint(
                 self.odefunc,
                 states,

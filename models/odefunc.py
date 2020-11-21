@@ -27,6 +27,13 @@ def divergence_approx(f, y, e=None):
     return approx_tr_dzdx
 
 
+def divergence_bf(dx, y):
+    sum_diag = 0.
+    for i in range(y.shape[-1]):
+        sum_diag += torch.autograd.grad(dx[:,:, i].sum(), y, create_graph=True)[0].contiguous()[:, :, i].contiguous()
+    return sum_diag.contiguous()
+
+
 class Swish(nn.Module):
     def __init__(self):
         super(Swish, self).__init__()
@@ -138,10 +145,11 @@ class ODEfunc(nn.Module):
 
 
 class ODEhyperfunc(nn.Module):
-    def __init__(self, diffeq):
+    def __init__(self, use_div_approx_train, use_div_approx_test, diffeq):
         super(ODEhyperfunc, self).__init__()
         self.diffeq = diffeq
-        self.divergence_fn = divergence_approx
+        self.use_div_approx_train = use_div_approx_train
+        self.use_div_approx_test = use_div_approx_test
         self.register_buffer("_num_evals", torch.tensor(0.))
 
     def before_odeint(self, e=None):
@@ -161,7 +169,16 @@ class ODEhyperfunc(nn.Module):
         with torch.set_grad_enabled(True):
             c = states[2]
             dy = self.diffeq(t, y, c)
-            divergence = self.divergence_fn(dy, y, e=self._e).unsqueeze(-1)
+            if self.training:
+                if self.use_div_approx_train:
+                    divergence = divergence_approx(dy, y, e=self._e).unsqueeze(-1)
+                else:
+                    divergence = divergence_bf(dy, y).unsqueeze(-1)
+            else:
+                if self.use_div_approx_test:
+                    divergence = divergence_approx(dy, y, e=self._e).unsqueeze(-1)
+                else:
+                    divergence = divergence_bf(dy, y).unsqueeze(-1)
             return dy, -divergence, torch.zeros_like(c).requires_grad_(True)
 
 

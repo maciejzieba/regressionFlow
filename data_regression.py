@@ -1,5 +1,52 @@
 import numpy as np
 from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
+
+kk = 3
+
+
+def w(x):
+    return np.log(1-x/kk)/np.log(2/kk)
+
+
+def n_w(x):
+    return np.floor(w(x))
+
+
+def r(x):
+    return w(x) - n_w(x)
+
+
+def WW(x):
+  n = n_w(x)
+  # print(n)
+  if n==0:
+    return np.array([r(x)])
+  else:
+    return np.hstack([np.ones( int(n) ), np.array([r(x)])])
+
+
+def ZZ(x):
+  n = n_w(x)
+  sign = np.random.choice([-1,1], int(n) +1, replace=True, p=[0.5, 0.5])
+  lists = np.array([(1/2**i) for i in range( int(n) +1 )])
+  return sign * lists
+
+
+def M(x):
+  w = WW(x)
+  z = ZZ(x)
+  # print(w)
+  # print(z)
+  return w@z.T
+
+
+def get_data3(n_size=10000):
+    M_v = np.vectorize(M)
+    s = np.random.uniform(0, kk, n_size)
+    m = M_v(s)
+    y = np.vstack((s, m)).T
+    return y
 
 
 def get_data(n_size=10000, mu=0.0, var=0.01):
@@ -13,8 +60,6 @@ def get_data(n_size=10000, mu=0.0, var=0.01):
     y2 = np.exp(mu + np.sqrt(var) * r) * x2
     y2 = y2 - np.asarray([0, 2])
     y = np.concatenate([y1, y2])
-    # plt.scatter(y[:, 0], y[:, 1])
-    # plt.show()
     return y
 
 
@@ -28,8 +73,8 @@ def get_data2(n_size=10000, mu=0.0, var=0.01):
 
 
 class ExampleData(Dataset):
-    def __init__(self, n_size=5000, mu=0.0, var=0.01):
-        self.train_points = get_data(n_size, mu, var)
+    def __init__(self, n_size=10000, mu=0.0, var=0.01):
+        self.train_points = get_data3(n_size)
 
     def __len__(self):
         return len(self.train_points)

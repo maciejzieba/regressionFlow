@@ -10,10 +10,9 @@ import faulthandler
 import torch.multiprocessing as mp
 import time
 from models.networks_regression import HyperRegression
-from torch import optim
 from args import get_args
 from torch.backends import cudnn
-from utils import AverageValueMeter, set_random_seed, resume
+from utils import AverageValueMeter, set_random_seed, resume, save
 from data_regression import ExampleData
 import matplotlib.pyplot as plt
 
@@ -21,7 +20,7 @@ import matplotlib.pyplot as plt
 faulthandler.enable()
 
 
-def main_worker(gpu, save_dir, ngpus_per_node, args):
+def main_worker(gpu, save_dir, args):
     # basic setup
     cudnn.benchmark = True
     args.gpu = gpu
@@ -45,47 +44,22 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
                 args.resume_checkpoint, model, optimizer=None, strict=(not args.resume_non_strict))
         print('Resumed from: ' + args.resume_checkpoint)
 
-    # initialize datasets and loaders
-
-
-    # initialize the learning rate scheduler
-    if args.scheduler == 'exponential':
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, args.exp_decay)
-    elif args.scheduler == 'step':
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.epochs // 2, gamma=0.1)
-    elif args.scheduler == 'linear':
-        def lambda_rule(ep):
-            lr_l = 1.0 - max(0, ep - 0.5 * args.epochs) / float(0.5 * args.epochs)
-            return lr_l
-        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
-    else:
-        assert 0, "args.schedulers should be either 'exponential' or 'linear'"
-
     # main training loop
     start_time = time.time()
-    entropy_avg_meter = AverageValueMeter()
-    latent_nats_avg_meter = AverageValueMeter()
     point_nats_avg_meter = AverageValueMeter()
     if args.distributed:
         print("[Rank %d] World size : %d" % (args.rank, dist.get_world_size()))
 
     print("Start epoch: %d End epoch: %d" % (start_epoch, args.epochs))
     for epoch in range(start_epoch, args.epochs):
-        # adjust the learning rate
-        if (epoch + 1) % args.exp_decay_freq == 0:
-            scheduler.step(epoch=epoch)
-
-        # train for one epoch
         print("Epoch starts:")
         data = ExampleData()
         train_loader = torch.utils.data.DataLoader(
             dataset=data, batch_size=args.batch_size, shuffle=True,
             num_workers=0, pin_memory=True)
         for bidx, data in enumerate(train_loader):
-            #if bidx < 2:
             x, y = data
             x = x.float().to(args.gpu).unsqueeze(1)
-            #y = y.float().to(args.gpu).unsqueeze(1).repeat(1, 10).unsqueeze(2)
             y = y.float().to(args.gpu).unsqueeze(1).unsqueeze(2)
             step = bidx + len(train_loader) * epoch
             model.train()
@@ -96,22 +70,28 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
                 start_time = time.time()
                 print("[Rank %d] Epoch %d Batch [%2d/%2d] Time [%3.2fs] PointNats %2.5f"
                       % (args.rank, epoch, bidx, len(train_loader),duration, point_nats_avg_meter.avg))
-                        # print("Memory")
-                        # print(process.memory_info().rss / (1024.0 ** 3))
         # save visualizations
+        kk = 3
         if (epoch + 1) % args.viz_freq == 0:
             # reconstructions
             model.eval()
-            x = torch.from_numpy(np.linspace(-1.0, 1.0, num=100)).float().to(args.gpu).unsqueeze(1)
+            x = torch.from_numpy(np.linspace(0, kk, num=100)).float().to(args.gpu).unsqueeze(1)
             _, y = model.decode(x, 100)
             x = x.cpu().detach().numpy()
             y = y.cpu().detach().numpy()
             x = np.expand_dims(x, 1).repeat(100, axis=1).flatten()
             y = y.flatten()
+            figs, axs = plt.subplots(1, 1, figsize=(12, 12))
+            plt.xlim([0, kk])
+            plt.ylim([-2, 2])
             plt.scatter(x, y)
             plt.savefig(os.path.join(save_dir, 'images', 'tr_vis_sampled_epoch%d-gpu%s.png' % (epoch, args.gpu)))
             plt.clf()
-
+        if (epoch + 1) % args.save_freq == 0:
+            save(model, optimizer, epoch + 1,
+                 os.path.join(save_dir, 'checkpoint-%d.pt' % epoch))
+            save(model, optimizer, epoch + 1,
+                 os.path.join(save_dir, 'checkpoint-latest.pt'))
 
 
 def main():
@@ -142,13 +122,7 @@ def main():
 
     print("Arguments:")
     print(args)
-
-    ngpus_per_node = torch.cuda.device_count()
-    if args.distributed:
-        args.world_size = ngpus_per_node * args.world_size
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(save_dir, ngpus_per_node, args))
-    else:
-        main_worker(args.gpu, save_dir, ngpus_per_node, args)
+    main_worker(args.gpu, save_dir, args)
 
 
 if __name__ == '__main__':

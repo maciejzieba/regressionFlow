@@ -94,8 +94,6 @@ def reduce_tensor(tensor, world_size=None):
 
 
 def standard_normal_logprob(z):
-    # dim = z.size(-1)
-    # log_z = -0.5 * dim * log(2 * pi)
     log_z = -0.5 * log(2 * pi)
     return log_z - z.pow(2) / 2
 
@@ -444,7 +442,7 @@ def draw_hyps(img_path, hyps, gt_object, objects, normalize=True, hist_rects_col
 #         print(h)
 #         x1 = int(h[0, 0, 0, 0])
 #         y1 = int(h[0, 1, 0, 0])
-#         
+#
 #         color = (0, 255, 0)
     for k in range(hyps.shape[0]):
         if normalize:
@@ -459,6 +457,20 @@ def draw_hyps(img_path, hyps, gt_object, objects, normalize=True, hist_rects_col
         cv2.rectangle(img, (x1, y1), (x2, y2), color, -1)
 
     return img
+
+
+def draw_ngsim_plots(hist, y_gt, y_pred, op_mask, dir):
+    hist_np = hist.cpu().detach().numpy()
+    y_gt = y_gt.cpu().detach().numpy()
+    y_pred = y_pred.cpu().detach().numpy()
+    op_mask = op_mask.cpu().detach().numpy()
+    for k in range(hist.shape[1]):
+        plt.scatter(hist_np[:, k, 1], hist_np[:, k, 0], marker='^')
+        plt.scatter(y_pred[k, :, 1], y_pred[k, :, 0], marker='*', c='#ff7f0e')
+        plt.scatter(y_gt[k, 0, 1], y_gt[k, 0, 0], marker='o', c='#bcbd22')
+        plt.savefig(os.path.join(dir, str(k) + '_' + str(op_mask[k]) + '.png'))
+        plt.close()
+
 
 def draw_sdd_heatmap(
     session_id,
@@ -487,15 +499,15 @@ def draw_sdd_heatmap(
 #     print(log_px_pred.shape)
     img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False, hist_rects_color=(255, 0,0), cvt_color=True)
 
-    
+
     X, Y = XY
-    
+
 #     print(X.shape, Y.shape)
     Z = log_px_pred.reshape(-1)
     Z = np.exp(Z)
-    
+
 #     Z = Z - Z.min()
-    
+
     print("z", Z.min(), Z.max())
     vmax = np.max(Z)
     vmin = np.min(Z)
@@ -504,7 +516,7 @@ def draw_sdd_heatmap(
     plt.imshow(img)
     plt.contourf(X, Y,Z.reshape(X.shape), vmin=vmin , vmax=vmax, cmap=transparent_cmap(plt.cm.jet), levels=20)
 #     plt.savefig("xd2.png")
-    
+
     plt.axis("off")
     plt.savefig(save_path,format='png', bbox_inches='tight', pad_inches=0 )
 #     buf = io.BytesIO()
@@ -514,7 +526,7 @@ def draw_sdd_heatmap(
 #     buf.close()
 #     plt.clf()
 #     plt.close()
-    
+
 #     im = im.crop((100, 215, 780, 1420))
 #     return im
 

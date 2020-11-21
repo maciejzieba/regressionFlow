@@ -83,6 +83,8 @@ def build_hyper(args, num_blocks, conditional):
             nonlinearity=args.nonlinearity,
         )
         odefunc = ODEhyperfunc(
+            use_div_approx_train=args.use_div_approx_train,
+            use_div_approx_test=args.use_div_approx_test,
             diffeq=diffeq,
         )
         cnf = CNF(
