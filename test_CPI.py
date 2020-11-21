@@ -12,9 +12,12 @@ from models.networks_regression_SDD import HyperRegression
 from utils import draw_hyps
 from wemd import computeWEMD
 
+CPI_WIDTH = 512
+CPI_HEIGHT = 512
+
 
 def main(args):
-    model = HyperRegression(args)
+    model = HyperRegression(args, input_width=CPI_WIDTH, input_height=CPI_HEIGHT)
     model = model.cuda()
     resume_checkpoint = args.resume_checkpoint
     print(f"Resume Path: {resume_checkpoint}")
@@ -26,7 +29,7 @@ def main(args):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-    data_test = SDDData(width=512, height=512, split='test', normalize=False, root=args.data_dir)
+    data_test = SDDData(width=CPI_WIDTH, height=CPI_HEIGHT, split='test', normalize=False, root=args.data_dir)
 
     metrics = {
         "car": defaultdict(list),

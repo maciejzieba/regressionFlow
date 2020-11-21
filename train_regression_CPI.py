@@ -14,6 +14,8 @@ from models.networks_regression_SDD import HyperRegression
 from torch import optim
 from args import get_args
 from torch.backends import cudnn
+
+from test_CPI import CPI_HEIGHT, CPI_WIDTH
 from utils import AverageValueMeter, set_random_seed, resume, save
 from data_regression_SDD import SDDData, decode_obj
 
@@ -30,7 +32,7 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
 
-    model = HyperRegression(args)
+    model = HyperRegression(args, input_height=CPI_HEIGHT, input_width=CPI_WIDTH)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
@@ -74,8 +76,8 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
     print("Start epoch: %d End epoch: %d" % (start_epoch, args.epochs))
 
     # size of the photos in CPI is 512x512
-    data = SDDData(width=512, height=512, split='train', normalize=normalize, root=args.data_dir)
-    data_test = SDDData(width=512, height=512, split='test', normalize=normalize, root=args.data_dir)
+    data = SDDData(width=CPI_WIDTH, height=CPI_HEIGHT, split='train', normalize=normalize, root=args.data_dir)
+    data_test = SDDData(width=CPI_WIDTH, height=CPI_HEIGHT, split='test', normalize=normalize, root=args.data_dir)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=data, batch_size=args.batch_size, shuffle=True,
