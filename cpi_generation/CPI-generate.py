@@ -8,11 +8,11 @@ from utils import writeFloat, locs_to_sdd_features
 
 parser = argparse.ArgumentParser(
     description="Script for generating CPI data in format compatible with SDD file format.")
-parser.add_argument("output_folder", help='destination folder for the produced data')
-parser.add_argument("n_scenes", help='number of scenes to produce')
-parser.add_argument("history", help='history (length of the image sequence to store)')
-parser.add_argument("n_gts", help='number of gts per image sequence')
-parser.add_argument("dist", help='prediction horizon.')
+parser.add_argument("--output_folder", help='destination folder for the produced data')
+parser.add_argument("--n_scenes", help='number of scenes to produce')
+parser.add_argument("--history", help='history (length of the image sequence to store)')
+parser.add_argument("--n_gts", help='number of gts per image sequence')
+parser.add_argument("--dist", help='prediction horizon.')
 
 args = parser.parse_args()
 
