@@ -74,8 +74,8 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
     print("Start epoch: %d End epoch: %d" % (start_epoch, args.epochs))
 
     # size of the photos in CPI is 512x512
-    data = SDDData(width=512, height=512, split='train', normalize=normalize, root_dir=args.data_dir)
-    data_test = SDDData(width=512, height=512, split='test', normalize=normalize, root_dir=args.data_dir)
+    data = SDDData(width=512, height=512, split='train', normalize=normalize, root=args.data_dir)
+    data_test = SDDData(width=512, height=512, split='test', normalize=normalize, root=args.data_dir)
 
     train_loader = torch.utils.data.DataLoader(
         dataset=data, batch_size=args.batch_size, shuffle=True,

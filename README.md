@@ -43,16 +43,16 @@ The datasets should be located in `data\SDD\train` and `data\SDD\test` locations
 You can run the training procedure with the script `train_regression_SDD.py` using the following settings:
 
 ```
-train_regression_SDD.py --log_name "experiment_regression_flow_SSD"
---lr 2e-5 --num_blocks 1 --batch_size 20 --epochs 100 --save_freq 1
+train_regression_SDD.py --log_name "experiment_regression_flow_SSD" \
+--lr 2e-5 --num_blocks 1 --batch_size 20 --epochs 100 --save_freq 1 \
 --viz_freq 1 --log_freq 1 --gpu 0 --dims 128-128-128 --input_dim 2
 ```
 
 Validation can be run using script `test_SDD` with parameters:
 
 ```
-python test_SDD.py --data_dir /data/SDD 
---resume_checkpoint /experiment_regression_flow_SSD/checkpoint-latest.pt 
+python test_SDD.py --data_dir /data/SDD \
+--resume_checkpoint /experiment_regression_flow_SSD/checkpoint-latest.pt \
 --num_blocks 1 --gpu 0 --dims 128-128-128 --input_dim 2
 ```
 
