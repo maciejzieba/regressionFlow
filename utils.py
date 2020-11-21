@@ -473,22 +473,12 @@ def draw_ngsim_plots(hist, y_gt, y_pred, op_mask, dir):
 
 
 def draw_sdd_heatmap(
-    session_id,
-    bidx,
-    nll_x,
-    nll_y,
-    x,
-    y_gt,
-    y_pred,
-    objects,
-    gt_object,
-    drawn_img_hyps,
-    testing_sequence,
-    log_px_pred,
-    log_py_pred,
-    xx,
-    XY,
-    save_path
+        objects,
+        gt_object,
+        testing_sequence,
+        log_px_pred,
+        X, Y,
+        save_path
 ):
     def transparent_cmap(cmap, N=255):
         "Copy colormap and set alpha values"
@@ -496,38 +486,17 @@ def draw_sdd_heatmap(
         mycmap._init()
         mycmap._lut[:, -1] = np.clip(np.linspace(0, 1.0, N + 4), 0, 1.0)
         return mycmap
-#     print(log_px_pred.shape)
     img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False, hist_rects_color=(255, 0,0), cvt_color=True)
 
-
-    X, Y = XY
-
-#     print(X.shape, Y.shape)
     Z = log_px_pred.reshape(-1)
     Z = np.exp(Z)
-
-#     Z = Z - Z.min()
-
-    print("z", Z.min(), Z.max())
     vmax = np.max(Z)
     vmin = np.min(Z)
     h, w, _ = img.shape
     plt.figure(figsize=(w // 25, h // 25,))
     plt.imshow(img)
     plt.contourf(X, Y,Z.reshape(X.shape), vmin=vmin , vmax=vmax, cmap=transparent_cmap(plt.cm.jet), levels=20)
-#     plt.savefig("xd2.png")
 
     plt.axis("off")
     plt.savefig(save_path,format='png', bbox_inches='tight', pad_inches=0 )
-#     buf = io.BytesIO()
-#     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-#     buf.seek(0)
-#     im = Image.open(buf).copy()
-#     buf.close()
-#     plt.clf()
-#     plt.close()
-
-#     im = im.crop((100, 215, 780, 1420))
-#     return im
-
 

@@ -72,12 +72,11 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
         print("[Rank %d] World size : %d" % (args.rank, dist.get_world_size()))
 
     print("Start epoch: %d End epoch: %d" % (start_epoch, args.epochs))
-    
-    # hardcoded data path
-    data = SDDData(width=512, height=512, split='train', normalize=normalize, root_dir="cpi_generation/cpi/")
-    data_test = SDDData(width=512, height=512, split='test_small', normalize=normalize, root_dir="cpi_generation/cpi/")
-    
-    
+
+    # size of the photos in CPI is 512x512
+    data = SDDData(width=512, height=512, split='train', normalize=normalize, root_dir=args.data_dir)
+    data_test = SDDData(width=512, height=512, split='test', normalize=normalize, root_dir=args.data_dir)
+
     train_loader = torch.utils.data.DataLoader(
         dataset=data, batch_size=args.batch_size, shuffle=True,
         num_workers=0, pin_memory=True)
@@ -92,18 +91,12 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
         # train for one epoch
         print("Epoch starts:")
         for bidx, data in enumerate(train_loader):
-            # if bidx < 2:
             x, y = data
-            #y = y.float().to(args.gpu).unsqueeze(1).repeat(1, 10).unsqueeze(2)
             x = x.float().to(args.gpu)
             y = y.float().to(args.gpu).unsqueeze(1)
-#             print("pre_repeat", x.shape, y.shape)
-#             y = y.repeat(1, 10, 1) 
             y += torch.randn(y.shape[0], y.shape[1], y.shape[2]).to(args.gpu)
             step = bidx + len(train_loader) * epoch
             model.train()
-#             print("post_repeat", x.shape, y.shape)
-
             recon_nats = model(x, y, optimizer, step, None)
             point_nats_avg_meter.update(recon_nats.item())
             if step % args.log_freq == 0:
@@ -142,7 +135,10 @@ def main_worker(gpu, save_dir, ngpus_per_node, args):
 def main():
     # command line args
     args = get_args()
-    save_dir = os.path.join("checkpoints", args.log_name)
+    if args.root_dir is None:
+        save_dir = os.path.join("checkpoints", args.log_name)
+    else:
+        save_dir = os.path.join(args.root_dir, "checkpoints", args.log_name)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
         os.makedirs(os.path.join(save_dir, 'images'))
