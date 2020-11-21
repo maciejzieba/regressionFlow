@@ -475,7 +475,8 @@ def draw_sdd_heatmap(
     log_px_pred,
     log_py_pred,
     xx,
-    XY
+    XY,
+    save_path
 ):
     def transparent_cmap(cmap, N=255):
         "Copy colormap and set alpha values"
@@ -492,24 +493,29 @@ def draw_sdd_heatmap(
 #     print(X.shape, Y.shape)
     Z = log_px_pred.reshape(-1)
     Z = np.exp(Z)
+    
+#     Z = Z - Z.min()
+    
+    print("z", Z.min(), Z.max())
     vmax = np.max(Z)
     vmin = np.min(Z)
     h, w, _ = img.shape
     plt.figure(figsize=(w // 25, h // 25,))
     plt.imshow(img)
     plt.contourf(X, Y,Z.reshape(X.shape), vmin=vmin , vmax=vmax, cmap=transparent_cmap(plt.cm.jet), levels=20)
-    plt.savefig("xd2.png")
+#     plt.savefig("xd2.png")
     
     plt.axis("off")
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-    buf.seek(0)
-    im = Image.open(buf).copy()
-    buf.close()
-    plt.clf()
-    plt.close()
+    plt.savefig(save_path,format='png', bbox_inches='tight', pad_inches=0 )
+#     buf = io.BytesIO()
+#     plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+#     buf.seek(0)
+#     im = Image.open(buf).copy()
+#     buf.close()
+#     plt.clf()
+#     plt.close()
     
 #     im = im.crop((100, 215, 780, 1420))
-    return im
+#     return im
 
 

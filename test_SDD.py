@@ -37,8 +37,12 @@ def main(args):
             dataset=data_test, batch_size=1, shuffle=False,
             num_workers=0, pin_memory=True)
         for bidx, data in enumerate(test_loader):
-#             if bidx not in [0,1]:
+#             if (session_id, bidx) not in [
+#                 (3,19),
+#                 (7,8)
+#             ]:
 #                 continue
+
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
@@ -49,8 +53,8 @@ def main(args):
             _, _, height, width = x.shape
             
             #####
-            x_sp = np.linspace(0, width - 1, width // 5)
-            y = np.linspace(0, height - 1, height // 5)
+            x_sp = np.linspace(0, width - 1, width // 1)
+            y = np.linspace(0, height - 1, height // 1)
             X, Y = np.meshgrid(x_sp, y)
             XX = np.array([X.ravel(), Y.ravel()]).T
             print("xx", XX.shape, y_pred.shape)
@@ -73,8 +77,7 @@ def main(args):
             nll_py_sum = nll_py_sum + -1.0 * log_py
             counter = counter + 1.0
             y_pred = y_pred.cpu().detach().numpy().squeeze()
-            # y_pred[y_pred < 0] = 0
-            # y_pred[y_pred >= 0.98] = 0.98
+
             testing_sequence = data_test.dataset.scenes[data_test.test_id].sequences[bidx]
             objects_list = []
             for k in range(3):
@@ -112,10 +115,11 @@ def main(args):
                 "log_py_pred": log_py_pred.detach().cpu().numpy(),
                 "xx": XX,
                 "XY": (X,Y),
+                "save_path": os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-heatmap.png')
 
             }
-            ht_img = draw_sdd_heatmap(**row)
-            ht_img.save(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-heatmap.png'))
+            draw_sdd_heatmap(**row)
+#             ht_img.save(os.path.join(save_path, str(session_id) + '-' + str(bidx) + '-heatmap.png'))
     
 #             if bidx in [0,1]:
 #                 rows.append(row)
