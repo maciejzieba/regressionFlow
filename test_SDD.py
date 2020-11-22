@@ -23,7 +23,7 @@ def get_grid_logprob(
         x,
         torch.tensor(XX).unsqueeze(0).to(args.gpu)
     )
-    return (X, Y), (log_px_grid.cpu().numpy(), log_py_grid.cpu().numpy())
+    return (X, Y), (log_px_grid.detach().cpu().numpy(), log_py_grid.detach().cpu().numpy())
 
 
 def main(args):
