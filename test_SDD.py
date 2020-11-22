@@ -57,7 +57,7 @@ def main(args):
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
-            _, y_pred = model.decode(x, 100)
+            _, y_pred = model.decode(x, 1000)
 
             log_py, log_px, _ = model.get_logprob(x, y_gt)
 
@@ -90,16 +90,16 @@ def main(args):
 
             _, _, height, width = x.shape
 
-            (X, Y), (log_px_grid, log_py_grid) = get_grid_logprob(height, width, x, model)
+#             (X, Y), (log_px_grid, log_py_grid) = get_grid_logprob(height, width, x, model)
 
-            draw_sdd_heatmap(
-                objects=objects_list,
-                gt_object=gt_object,
-                testing_sequence=testing_sequence,
-                log_px_pred=log_px_grid,
-                X=X, Y=Y,
-                save_path=os.path.join(save_path, f"{session_id}-{bidx}-heatmap.png")
-            )
+#             draw_sdd_heatmap(
+#                 objects=objects_list,
+#                 gt_object=gt_object,
+#                 testing_sequence=testing_sequence,
+#                 log_px_pred=log_px_grid,
+#                 X=X, Y=Y,
+#                 save_path=os.path.join(save_path, f"{session_id}-{bidx}-heatmap.png")
+#             )
 
             result_row = {
                 "session_id": session_id,
