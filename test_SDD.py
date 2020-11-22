@@ -1,3 +1,4 @@
+import json
 import os
 
 import cv2
@@ -44,7 +45,8 @@ def main(args):
     multimod_emd_sum = 0
 
     counter = 0.0
-    #     rows = []
+
+    results = []
     for session_id in range(len(data_test.dataset.scenes)):
         data_test.test_id = session_id
         test_loader = torch.utils.data.DataLoader(
@@ -99,10 +101,21 @@ def main(args):
                 save_path=os.path.join(save_path, f"{session_id}-{bidx}-heatmap.png")
             )
 
+            result_row = {
+                "session_id": session_id,
+                "bidx": bidx,
+                "nll_x": float(-1.0 * log_px),
+                "nll_y": float(-1.0 * log_py),
+                "multimod_emd": float(multimod_emd)
+            }
+            results.append(result_row)
+
     print("Mean log_p_x: ", nll_px_sum / counter)
     print("Mean log_p_y: ", nll_py_sum / counter)
     print("Mean multimod_emd:", multimod_emd_sum / counter)
 
+    with open(os.path.join(save_path, "metrics.json"), "w") as f:
+        json.dump(results, f)
 
 if __name__ == '__main__':
     args = get_args()
