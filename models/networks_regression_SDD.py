@@ -104,7 +104,7 @@ class ListModule(nn.Module):
 
 
 class HyperRegression(nn.Module):
-    def __init__(self, args, input_width=370, input_height=576):
+    def __init__(self, args, input_width=320, input_height=576):
         super(HyperRegression, self).__init__()
         self.input_dim = args.input_dim
         self.hyper = HyperFlowNetwork(args, input_height=input_height, input_width=input_width)
