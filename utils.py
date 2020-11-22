@@ -10,7 +10,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import cv2
-
+import io
+from PIL import Image
+from sklearn.mixture import GaussianMixture as GMM
+# from wemd import computeWEMD
 
 class AverageValueMeter(object):
     """Computes and stores the average and current value"""
@@ -416,23 +419,31 @@ def visualize_2Dimage(image, samples, idx):
     return res
 
 
-def draw_hyps(img_path, hyps, gt_object, objects, normalize=True):
+def draw_hyps(img_path, hyps, gt_object, objects, normalize=True, hist_rects_color=(0, 0, 255), cvt_color: bool = False):
     img = cv2.imread(img_path)
+    if cvt_color:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # draw object history
     tranparency = {0: 0.2, 1: 0.5, 2: 1.0}
     for i in range(3):
         overlay = img.copy()
         cv2.rectangle(overlay, (int(objects[i, 0, 0, 0, 0]), int(objects[i, 0, 0, 1, 0])),
-                      (int(objects[i, 0, 0, 2, 0]), int(objects[i, 0, 0, 3, 0])), (0, 0, 255), -1)
+                      (int(objects[i, 0, 0, 2, 0]), int(objects[i, 0, 0, 3, 0])), hist_rects_color, -1)
         img = cv2.addWeighted(overlay, tranparency[i], img, 1 - tranparency[i], 0)
 
     # draw the ground truth future
     cv2.rectangle(img, (int(gt_object[0, 0, 0, 0]), int(gt_object[0, 0, 1, 0])),
                   (int(gt_object[0, 0, 2, 0]), int(gt_object[0, 0, 3, 0])), (255, 0, 255), -1)
-    # gt_width = gt_object[0, 0, 2, 0] - gt_object[0, 0, 0, 0]
-    # gt_height = gt_object[0, 0, 3, 0] - gt_object[0, 0, 1, 0]
+    gt_width = gt_object[0, 0, 2, 0] - gt_object[0, 0, 0, 0]
+    gt_height = gt_object[0, 0, 3, 0] - gt_object[0, 0, 1, 0]
     #
     # # draw hypotheses (different futures)
+#     for h in hyps:
+#         print(h)
+#         x1 = int(h[0, 0, 0, 0])
+#         y1 = int(h[0, 1, 0, 0])
+#
+#         color = (0, 255, 0)
     for k in range(hyps.shape[0]):
         if normalize:
             x1 = int(img.shape[1] * hyps[k, 0])
@@ -441,7 +452,10 @@ def draw_hyps(img_path, hyps, gt_object, objects, normalize=True):
             x1 = int(hyps[k, 0])
             y1 = int(hyps[k, 1])
         color = (0, 255, 0)
-        cv2.circle(img, (x1, y1), 3, color, -1)
+        x2 = int(x1 + gt_width)
+        y2 = int(y1 + gt_height)
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, -1)
+
     return img
 
 
@@ -456,3 +470,33 @@ def draw_ngsim_plots(hist, y_gt, y_pred, op_mask, dir):
         plt.scatter(y_gt[k, 0, 1], y_gt[k, 0, 0], marker='o', c='#bcbd22')
         plt.savefig(os.path.join(dir, str(k) + '_' + str(op_mask[k]) + '.png'))
         plt.close()
+
+
+def draw_sdd_heatmap(
+        objects,
+        gt_object,
+        testing_sequence,
+        log_px_pred,
+        X, Y,
+        save_path
+):
+    def transparent_cmap(cmap, N=255):
+        "Copy colormap and set alpha values"
+        mycmap = cmap
+        mycmap._init()
+        mycmap._lut[:, -1] = np.clip(np.linspace(0, 1.0, N + 4), 0, 1.0)
+        return mycmap
+    img = draw_hyps(testing_sequence.imgs[-1], np.empty((0,2)), gt_object, np.array(objects), normalize=False, hist_rects_color=(255, 0,0), cvt_color=True)
+
+    Z = log_px_pred.reshape(-1)
+    Z = np.exp(Z)
+    vmax = np.max(Z)
+    vmin = np.min(Z)
+    h, w, _ = img.shape
+    plt.figure(figsize=(w // 25, h // 25,))
+    plt.imshow(img)
+    plt.contourf(X, Y,Z.reshape(X.shape), vmin=vmin , vmax=vmax, cmap=transparent_cmap(plt.cm.jet), levels=20)
+
+    plt.axis("off")
+    plt.savefig(save_path,format='png', bbox_inches='tight', pad_inches=0 )
+

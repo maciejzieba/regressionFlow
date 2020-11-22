@@ -37,6 +37,7 @@ def readFloat(name):
 # read an image amd resize when needed
 def decode_img(file_path, width=None, height=None):
     img = cv2.imread(file_path)
+
     img = img / 255.0
     img = np.subtract(img, 0.4)
     if width is not None and height is not None:
@@ -65,10 +66,12 @@ class DataLoader():
 
     def load_scenes(self):
         scenes_names = sorted(os.listdir(self.path))
+        print(self.path, "scenes_names", len(scenes_names))
         for scene_name in scenes_names:
             if os.path.exists(os.path.join(self.path, scene_name, 'scene.txt')):
                     self.scenes.append(Scene(os.path.join(self.path, scene_name)))
 
+        print("n_Seqs", sum([len(s.sequences) for s in self.scenes]))
 
 class Scene():
     def __init__(self, scene_path):
@@ -110,11 +113,12 @@ class Sequence():
 
 class SDDData(Dataset):
     def __init__(self, width=320, height=576, split='train', test_id=0, normalize=True, root=None):
+
         self.split = split
         if self.split == 'train':
             root = os.path.join(root, 'train')
         else:
-            root = os.path.join(root, 'test')
+            root = os.path.join(root, split)
         self.width = width
         self.height = height
         self.dataset = DataLoader(root)
@@ -123,7 +127,7 @@ class SDDData(Dataset):
 
     def __len__(self):
         if self.split == 'train':
-            return 40000
+            return len(self.dataset.scenes)
         else:
             return len(self.dataset.scenes[self.test_id].sequences)
 

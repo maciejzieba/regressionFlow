@@ -104,10 +104,10 @@ class ListModule(nn.Module):
 
 
 class HyperRegression(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, input_width=320, input_height=576):
         super(HyperRegression, self).__init__()
         self.input_dim = args.input_dim
-        self.hyper = HyperFlowNetwork(args)
+        self.hyper = HyperFlowNetwork(args, input_height=input_height, input_width=input_width)
         self.args = args
         self.point_cnf = get_hyper_cnf(self.args)
         self.gpu = args.gpu
@@ -186,25 +186,29 @@ class HyperRegression(nn.Module):
     def get_logprob(self, x, y_in):
         batch_size = x.size(0)
         target_networks_weights = self.hyper(x)
-
+        
         # Loss
         y, delta_log_py = self.point_cnf(y_in, target_networks_weights, torch.zeros(batch_size, y_in.size(1), 1).to(y_in))
         if self.logprob_type == "Laplace":
-            log_py = standard_laplace_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
+            log_py = standard_laplace_logprob(y)
         if self.logprob_type == "Normal":
-            log_py = standard_normal_logprob(y).view(batch_size, -1).sum(1, keepdim=True)
-
+            log_py = standard_normal_logprob(y)
+        
+        batch_log_py = log_py.sum(dim=2)
+        batch_log_px = batch_log_py - delta_log_py.sum(dim=2)
+        log_py = log_py.view(batch_size, -1).sum(1, keepdim=True)
         delta_log_py = delta_log_py.view(batch_size, y.size(1), 1).sum(1)
         log_px = log_py - delta_log_py
+        
 
-        return log_py, log_px
+        return log_py, log_px, ( batch_log_py, batch_log_px)
 
 
 class HyperFlowNetwork(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, input_width=320, input_height=576):
         super().__init__()
 
-        self.encoder = FlowNetS()
+        self.encoder = FlowNetS(input_width=input_width, input_height=input_height)
         output = []
         self.n_out = 1024
         # self.n_out = 46080
@@ -244,7 +248,7 @@ class HyperFlowNetwork(nn.Module):
 
 
 class FlowNetS(nn.Module):
-    def __init__(self, input_channels=12, batchNorm=True):
+    def __init__(self, input_channels=12, batchNorm=True, input_width=320, input_height=576):
         super(FlowNetS, self).__init__()
 
         self.batchNorm = batchNorm
@@ -258,11 +262,15 @@ class FlowNetS(nn.Module):
         self.conv5_1 = conv(self.batchNorm, 512, 512)
         self.conv6 = conv(self.batchNorm, 512, 1024, stride=2)
         self.conv6_1 = conv(self.batchNorm, 1024, 1024)
+
         self.conv7 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
         self.conv8 = conv(self.batchNorm, 1024, 1024, kernel_size=1, stride=1, padding=0)
-        #self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
-        self.fc1 = nn.Linear(in_features=46080, out_features=1024, bias=True)
+
+        fc1_input_features = (input_height * input_width) // 4
+        self.fc1 = nn.Linear(in_features=fc1_input_features, out_features=1024, bias=True)
+
         self.fc2 = nn.Linear(in_features=1024, out_features=1024, bias=True)
+
         # self.predict_6 = predict_flow(1024)
         # self.fc1 = nn.Linear(in_features=90, out_features=512, bias=True)
         # self.fc2 = nn.Linear(in_features=512, out_features=1024, bias=True)
@@ -287,7 +295,12 @@ class FlowNetS(nn.Module):
         out_conv4 = self.conv4_1(self.conv4(out_conv3))
         out_conv5 = self.conv5_1(self.conv5(out_conv4))
         out_conv6 = self.conv6_1(self.conv6(out_conv5))
-        out_conv8 = self.conv8(self.conv7(out_conv6))
+
+        out_conv8 = self.conv8(self.conv7(out_conv6))  # SDD
+        out_fc1 = nn.functional.relu(self.fc1(out_conv8.view(out_conv6.size(0), -1)))  # SDD
+
+        #         out_fc1 = nn.functional.relu(self.fc1(out_conv6.view(out_conv6.size(0), -1))) # CPI
+
         # predict = self.predict_6(out_conv8)
         # out_fc1 = nn.functional.relu(self.fc1(predict.view(predict.size(0), -1)))
         # out_fc2 = nn.functional.relu(self.fc2(out_fc1))
@@ -296,7 +309,7 @@ class FlowNetS(nn.Module):
         # out_conv8 = self.conv8(out_conv7)
         # out_fc2 = out_conv6.view(out_conv6.size(0), -1)
         # out_fc2 = self.fc1(out_conv8.view(out_conv8.size(0), -1))
-        out_fc1 = nn.functional.relu(self.fc1(out_conv8.view(out_conv6.size(0), -1)))
+
         out_fc2 = nn.functional.relu(self.fc2(out_fc1))
-        #out_fc2 = self.predict_6(out_conv6)
+        # out_fc2 = self.predict_6(out_conv6)
         return out_fc2
