@@ -57,7 +57,7 @@ def main(args):
             x, y_gt = data
             x = x.float().to(args.gpu)
             y_gt = y_gt.float().to(args.gpu).unsqueeze(1)
-            _, y_pred = model.decode(x, 10)
+            _, y_pred = model.decode(x, 100)
 
             log_py, log_px, _ = model.get_logprob(x, y_gt)
 
