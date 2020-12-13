@@ -58,11 +58,11 @@ class CNF(nn.Module):
         else:
             self.test_atol = [self.atol] * 3
             self.test_rtol = [self.rtol] * 3
-            _logpx = logpx
+            _logpx = logpx.to(x)
 
         if self.conditional:
             assert context is not None
-            states = (x, _logpx, context)
+            states = (x, _logpx, context.to(x))
             # atol = [self.atol] * 3
             # rtol = [self.rtol] * 3
             atol = [self.atol] * 3
@@ -75,7 +75,7 @@ class CNF(nn.Module):
         if integration_times is None:
             if self.train_T:
                 integration_times = torch.stack(
-                    [torch.tensor(0.0).to(x), self.sqrt_end_time * self.sqrt_end_time]
+                    [torch.tensor(0.0).to(x), (self.sqrt_end_time * self.sqrt_end_time).to(x)]
                 ).to(x)
             else:
                 integration_times = torch.tensor([0., self.T], requires_grad=False).to(x)
