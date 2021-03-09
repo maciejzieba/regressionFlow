@@ -71,8 +71,8 @@ train_regression_SDD.py --log_name "experiment_regression_flow_SSD" \
 Validation can be run using script `test_SDD` with parameters:
 
 ```
-python test_SDD.py --data_dir /data/SDD \
---resume_checkpoint /experiment_regression_flow_SSD/checkpoint-latest.pt \
+python test_SDD.py --data_dir ./data/SDD \
+--resume_checkpoint ./checkpoints/experiment_regression_flow_SSD/checkpoint-latest.pt \
 --num_blocks 1 --gpu 0 --dims 128-128-128 --input_dim 2
 ```
 
@@ -153,3 +153,4 @@ python test_CPI.py --data_dir cpi_generation/cpi \
 --resume_checkpoint experiment_regression_flow_CPI/checkpoint-latest.pt \
 --num_blocks 1 --gpu 0 --dims 128-128-128 --input_dim 2
 ```
+
