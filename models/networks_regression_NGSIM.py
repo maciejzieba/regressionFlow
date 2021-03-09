@@ -77,13 +77,6 @@ class HyperRegression(nn.Module):
         recon_nats = recon / float(y.size(0))
         return recon_nats
 
-    @staticmethod
-    def sample_gaussian(size, truncate_std=None, gpu=None):
-        y = torch.randn(*size).float()
-        y = y if gpu is None else y.cuda(gpu)
-        if truncate_std is not None:
-            truncated_normal(y, mean=0, std=1, trunc_std=truncate_std)
-        return y
 
     @staticmethod
     def sample_gaussian(size, truncate_std=None, gpu=None):
